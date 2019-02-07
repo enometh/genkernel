@@ -2727,6 +2727,7 @@ do_resume() {
 	elif [ -f /sys/power/resume ]
 	then
 		swsusp_resume
+		swsusp_resume2
 		resume_tried=yes
 	fi
 
@@ -2739,12 +2740,48 @@ do_resume() {
 }
 
 swsusp_resume() {
+	set -x
+	echo madhu swsusp_resume_bogus
 	# determine swap resume partition
 	local device=$(ls -lL "${REAL_RESUME}" | sed 's/\  */ /g' | cut -d \  -f 5-6 | sed 's/,\ */:/')
 
 	log_msg "Trying to resume using swsusp ..."
 	log_msg "COMMAND: 'echo \"${device}\" > /sys/power/resume'"
 	echo "${device}" > /sys/power/resume
+
+	echo madhu done device=$device
+	set +x
+}
+
+
+swsusp_resume2() {
+set -x
+echo swsusp_resume
+	echo
+	echo /sys/power/resume = $(cat /sys/power/resume)
+	echo which resume = $(which resume)
+	echo /dev/snapshot = $(ls /dev/snapshot)
+	echo REAL_RESUME=$REAL_RESUME
+	echo
+    [ -f /sys/power/resume ] && which resume > /dev/null 2>&1 || return 0
+    [ -c /dev/snapshot ] || mknod /dev/snapshot c 10 231 # || return
+    local device kmd features
+    if [ -n "$REAL_RESUME" ] && device=$(readlink -f "$REAL_RESUME"); then
+	echo readlink device=$device
+	set -- --resume_device="$device"
+    else set -- # clear args
+    fi
+    kmd=$(cat /proc/cmdline)
+    case " $kmd " in
+	*' suspend_noui'*' splash='*|*' splash='*' suspend_noui'*)
+	    features=$(resume --version | grep FEATURES)
+	    case " $features " in
+		*' fbsplash '*) set -- "$@" --parameter=splash=y
+	    esac
+    esac
+    echo executing resume $@ -f /etc/suspend.conf
+    resume "$@" -f /etc/suspend.conf
+set +x
 }
 
 tuxonice_resume() {
