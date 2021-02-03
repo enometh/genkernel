@@ -613,7 +613,7 @@ fi
 sdelay
 
 # Scan volumes
-start_volumes
+ZFSOK=false start_volumes
 
 setup_keymap
 
@@ -657,6 +657,8 @@ then
 		do_resume
 	fi
 fi
+
+ZFSOK=true start_volumes
 
 run mkdir -p "${NEW_ROOT}"
 CHROOT="${NEW_ROOT}"

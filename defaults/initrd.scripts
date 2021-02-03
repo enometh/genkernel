@@ -1519,6 +1519,7 @@ splash() {
 }
 
 start_volumes() {
+if ! ${ZFSOK} ; then
 	# Here, we check for /dev/device-mapper, and if it exists, we setup a
 	# a symlink, which should hopefully fix bug #142775 and bug #147015
 	if [ -e /dev/device-mapper ] && [ ! -e /dev/mapper/control ]
@@ -1610,7 +1611,7 @@ start_volumes() {
 			fi
 		fi
 	fi
-
+else # ZFSOK
 	if [ "${USE_ZFS}" = '1' ]
 	then
 		# Avoid race involving asynchronous module loading
@@ -1672,7 +1673,7 @@ start_volumes() {
 			fi
 		fi
 	fi
-
+fi
 	udevsettle
 }
 
