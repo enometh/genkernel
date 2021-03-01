@@ -333,7 +333,7 @@ determine_real_args() {
 	#                               Dest / Config File                    Command Line                              Arch Default
 	#                               ------------------                    ------------                              ------------
 	set_config_with_override STRING TMPDIR                                CMD_TMPDIR                                "/var/tmp/genkernel"
-	set_config_with_override STRING LOGFILE                               CMD_LOGFILE                               "/var/log/genkernel.conf"
+	set_config_with_override STRING LOGFILE                               CMD_LOGFILE                               "/var/log/genkernel.log"
 	set_config_with_override STRING KERNEL_DIR                            CMD_KERNEL_DIR                            "${DEFAULT_KERNEL_SOURCE}"
 	set_config_with_override STRING KERNEL_MODULES_PREFIX                 CMD_KERNEL_MODULES_PREFIX
 	set_config_with_override BOOL   KERNEL_SOURCES                        CMD_KERNEL_SOURCES                        "yes"
