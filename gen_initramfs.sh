@@ -1415,11 +1415,11 @@ append_dropbear() {
 				missing_ssh_host_keys=yes
 			fi
 
-			if [ ! -f "/etc/ssh/ssh_host_ed25519_key" ]
-			then
-				print_info 3 "$(get_indent 2)${PN}: >> SSH host key '/etc/ssh/ssh_host_ed25519_key' is missing!"
-				missing_ssh_host_keys=yes
-			fi
+#			if [ ! -f "/etc/ssh/ssh_host_ed25519_key" ]
+#			then
+#				print_info 3 "$(get_indent 2)${PN}: >> SSH host key '/etc/ssh/ssh_host_ed25519_key' is missing!"
+#				missing_ssh_host_keys=yes
+#			fi
 
 			if isTrue "${missing_ssh_host_keys}"
 			then
@@ -1431,7 +1431,8 @@ append_dropbear() {
 
 		local -a required_dropbear_host_keys=(
 			/etc/dropbear/dropbear_ecdsa_host_key
-			/etc/dropbear/dropbear_ed25519_host_key
+# ;madhu 210416
+#			/etc/dropbear/dropbear_ed25519_host_key
 			/etc/dropbear/dropbear_rsa_host_key
 		)
 
@@ -1460,12 +1461,12 @@ append_dropbear() {
 				then
 					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_ecdsa_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
 					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
-				elif [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]] \
-					&& [[ "${required_key}" == *_ed25519_* ]] \
-					&& [[ "${required_key}" -ot "/etc/ssh/ssh_host_ed25519_key" ]]
-				then
-					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_ed25519_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
-					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
+#				elif [[ "${SSH_HOST_KEYS}" == 'create-from-host' ]] \
+#					&& [[ "${required_key}" == *_ed25519_* ]] \
+#					&& [[ "${required_key}" -ot "/etc/ssh/ssh_host_ed25519_key" ]]
+#				then
+#					print_info 1 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists but is older than '/etc/ssh/ssh_host_ed25519_key'; Removing to force update due to --ssh-host-key=create-from-host ..."
+#					rm "${required_key}" || gen_die "Failed to remove outdated '${required_key}' file!"
 				else
 					print_info 3 "$(get_indent 2)${PN}: >> Dropbear host key '${required_key}' exists!"
 					unset required_dropbear_host_keys[${i}]
@@ -1509,8 +1510,8 @@ append_dropbear() {
 			print_info 2 "$(get_indent 2)${PN}: >> Using existing dropbear host keys from /etc/dropbear ..."
 		fi
 
-		cp -aL --target-directory "${initramfs_dropbear_dir}" /etc/dropbear/dropbear_{rsa,ecdsa,ed25519}_host_key \
-			|| gen_die "Failed to copy '/etc/dropbear/dropbear_{rsa,ecdsa,ed25519}_host_key'"
+		cp -aL --target-directory "${initramfs_dropbear_dir}" /etc/dropbear/dropbear_{rsa,ecdsa}_host_key \
+			|| gen_die "Failed to copy '/etc/dropbear/dropbear_{rsa,ecdsa}_host_key'"
 
 		# Try to show embedded dropbear host key details for security reasons.
 		# We do it that complicated to get common used formats.
