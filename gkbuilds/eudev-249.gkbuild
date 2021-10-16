@@ -1,0 +1,167 @@
+# Copyright 1999-2021 Gentoo Authors
+# Distributed under the terms of the GNU General Public License v2
+
+# implicit-deps: ccache, meson
+
+src_prepare() {
+    (CCACHE_DIR=/var/tmp/ccache-genkernel; mkdir -pv ${CCACHE_DIR})
+    default
+}
+
+src_configure() {
+    local builddir=build
+
+    local emesonargs=(
+	-Dacl=false -Defi=false -Dkmod=true
+	-Dselinux=false -Dlink-udev-shared=false
+	-Dsplit-usr=true
+	-Drootlibdir=/usr/lib
+	-Dgcrypt=false
+	-Dlibcryptsetup=false
+	-Didn=false
+	-Dlibidn=false
+	-Dlibidn2=false
+	-Dlibiptc=false -Dp11kit=false
+	-Dseccomp=false
+	-Dlz4=false
+	-Dxz=false
+
+	# genkernel specifics
+	-Dstatic-libudev=true #no-pic
+
+	-Dman=false
+	-Dtests=false
+	-Dinstall-tests=false
+	-Dhwdb=false
+	-Dblkid=true
+    )
+
+    local mesonargs=(
+	setup
+	--buildtype plain --localstatedir /var/lib
+	--prefix /usr --sysconfdir /etc --wrap-mode nodownload
+	--includedir=/usr/include
+	--libdir=/usr/lib
+    )
+
+    #	--build.pkg-config-path /var/tmp/portage/sys-fs/udev-249-r3/temp/python3.9/pkgconfig:/usr/share/pkgconfig --pkg-config-path /var/tmp/portage/sys-fs/udev-249-r3/temp/python3.9/pkgconfig:/usr/share/pkgconfig --native-file /var/tmp/portage/sys-fs/udev-249-r3/temp/meson.x86_64-pc-linux-gnu.amd64.ini
+
+    (export CCACHE_DIR=/var/tmp/ccache-genkernel PATH=/usr/lib/ccache/bin:$PATH ;\
+     meson "${mesonargs[@]}" "${emesonargs[@]}" "${builddir}" "$@")
+}
+
+src_compile() {
+    local builddir=build
+    pushd $builddir
+
+    # meson creates this link
+    local libudev=$(readlink libudev.so.1)
+
+    local targets=(
+	${libudev}
+	src/libudev/libudev.pc
+	libudev.a
+    )
+
+    targets+=(
+	udevadm
+	src/udev/ata_id
+	src/udev/cdrom_id
+	src/udev/fido_id
+	src/udev/mtd_probe
+	src/udev/scsi_id
+	src/udev/udev.pc
+	src/udev/v4l_id
+	#	    man/udev.conf.5
+	#	    man/systemd.link.5
+	#	    man/hwdb.7
+	#	    man/udev.7
+	#	    man/systemd-udevd.service.8
+	#	    man/udevadm.8
+	rules.d/50-udev-default.rules
+	rules.d/64-btrfs.rules
+    )
+
+#    local mesoncompileargs=(
+#	-C "${builddir}"
+#	--jobs 4
+#	--load-average 4
+#	--verbose
+#    )
+
+    (export CCACHE_DIR=/var/tmp/ccache-genkernel PATH=/usr/lib/ccache/bin:$PATH ; \
+     ninja -v "${targets[@]}" "$@")
+
+    popd
+}
+
+src_install() {
+    local builddir=build
+    pushd $builddir
+
+    local libudev=$(readlink libudev.so.1)
+
+    mkdir -pv ${D}/usr/lib
+    install -pv libudev.a {${libudev},libudev.so.1,libudev.so} ${D}/usr/lib
+
+    mkdir -pv ${D}/usr/include
+    install -pv src/libudev/libudev.h ${D}/usr/include
+
+    mkdir -pv ${D}/usr/share/pkgconfig
+    install -pv src/udev/udev.pc ${D}/usr/share/pkgconfig
+
+    # should this go to ${D}/usr/share/pkgconfig
+    mkdir -pv ${D}/usr/lib/pkgconfig
+    install -pv src/libudev/libudev.pc ${D}/usr/lib/pkgconfig
+
+    mkdir -pv ${D}/bin
+    install -pv udevadm ${D}/bin
+
+    mkdir -pv ${D}/lib/systemd/
+    ln -sv ../../bin/udevadm ${D}/lib/systemd/systemd-udevd
+
+    mkdir -pv ${D}/usr/sbin
+    ln -sv ../../bin/udevadm ${D}/usr/sbin/udevd
+
+    mkdir -pv ${D}/lib/udev
+    install -pv src/udev/{ata_id,cdrom_id,fido_id,mtd_probe,scsi_id,v4l_id} ${D}/lib/udev
+
+    mkdir -pv ${D}/lib/udev/rules.d
+    install -pv rules.d/*.rules  ${D}/lib/udev/rules.d
+
+    mkdir -pv ${D}/etc/udev
+    install -pv src/udev/udev.conf ${D}/etc/udev
+    mkdir -pv ${D}/etc/udev/{hwdb.d,rules.d}
+    touch ${D}/etc/udev/{hwdb.d,rules.d}/.keep
+
+    mkdir -pv ${D}/lib/systemd/network
+    install -pv network/99-default.link ${D}/lib/systemd/network
+
+    mkdir -pv ${D}/lib/udev/rules.d
+    install -pv rules.d/*.rules  ${D}/lib/udev/rules.d
+    install -pv ${GK_SHARE}/patches/${PN}/${PV} ${D}/lib/udev/rules.d
+
+
+    mkdir -pv ${D}/usr/bin
+    ln -sv ../../bin/udevadm ${D}/usr/bin/
+
+    ln -sv ../../lib/udev ${D}/usr/lib
+
+    local files_to_strip=()
+    files_to_strip+=( /usr/bin/udevadm )
+    files_to_strip+=( /usr/lib/udev/ata_id )
+    files_to_strip+=( /usr/lib/udev/cdrom_id )
+    files_to_strip+=( /usr/lib/udev/fido_id )
+    files_to_strip+=( /usr/lib/udev/mtd_probe )
+    files_to_strip+=( /usr/lib/udev/scsi_id )
+    files_to_strip+=( /usr/lib/udev/v4l_id )
+    files_to_strip+=( /usr/sbin/udevd )
+
+    local file_to_strip=
+    for file_to_strip in "${files_to_strip[@]}"
+    do
+	"${STRIP}" -v -p --strip-all "${D}"${file_to_strip} \
+	    || (echo "Failed to strip '${D}${file_to_strip}'!" && exit -1)
+    done
+    popd
+}
