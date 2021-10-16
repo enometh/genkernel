@@ -195,12 +195,13 @@ append_devicemanager() {
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 
 	# Delete unneeded files
-	rm -rf \
+	# usr/lib/lib* \
+	print_info 2 "MADHU: horrible kludge for sys-fs/udev: append_device-manager: retaining $(ls usr/lib/lib*)"
+	rm -rfv \
 		sbin/lvm \
 		usr/include \
 		usr/lib/device-mapper \
 		usr/lib/pkgconfig \
-		usr/lib/lib* \
 		usr/sbin/lvm \
 		usr/share
 
@@ -637,14 +638,18 @@ append_eudev() {
 	fi
 
 	# Delete unneeded files
-	rm -rf usr/include \
-		usr/lib/libu* \
+	print_info 2 "MADHU: horrible kludge for sys-fs/udev:  append_eudev: retaining $(ls usr/lib/libu*)"
+	# usr/lib/libu* \a
+	rm -rfv usr/include \
 		usr/lib/pkgconfig \
 		usr/share
 
 	# Disable predictable network interface names in initramfs
 	echo "" > usr/lib/udev/rules.d/80-net-name-slot.rules \
 		|| gen_die "Failed to disable predictable network interface naming rule"
+	print_info 2 "MADHU: horrible kludge for sys-fs/udev: copying files missed out by gkbuilds/eudev-249"
+	find /lib64/libcap.so.2* /lib64/libkmod.so.2* | "${CPIO_COMMAND}" -mpdv .
+	mv -apiv lib64/* lib
 
 	log_future_cpio_content
 	find . -print0 | "${CPIO_COMMAND}" ${CPIO_ARGS} --append -F "${CPIO_ARCHIVE}" \
@@ -920,10 +925,11 @@ append_lvm() {
 	done
 
 	# Delete unneeded files
-	rm -rf \
+	# kludge for sys-fs/udev: don't delete: usr/lib/lib* \
+	print_info 2 "MADHU: horrible kludge for sys-fs/udev: retaining $(ls usr/lib/lib*)"
+	rm -rfv \
 		usr/lib/device-mapper \
 		usr/lib/pkgconfig \
-		usr/lib/lib* \
 		usr/sbin/dm* \
 		usr/share \
 		usr/include
@@ -1737,9 +1743,10 @@ append_modules() {
 	cd "${TDIR}" || gen_die "Failed to chdir to '${TDIR}'!"
 
 	# Delete unneeded files
-	rm -rf \
+	#	usr/lib
+	print_info 2 "MADHU: horrible kludge for sys-fs/udev:  append_modules: retaining $(ls usr/lib)"
+	rm -rfv \
 		usr/include \
-		usr/lib
 
 	local mydir=
 	for mydir in \

@@ -1,6 +1,9 @@
 # Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+# ;madhu 211017 fail
+QA_IGNORE_DYNAMICALLY_LINKED_PROGRAM='(.*)$'
+
 src_configure() {
 	# devicemapper needs to find udev
 	append-ldflags -Wl,-rpath-link,${BROOT}/usr/lib
@@ -38,6 +41,12 @@ src_configure() {
 	# "-o pipefail" #682404, #716496
 	CONFIG_SHELL="/bin/bash" \
 	gkconf "${myconf[@]}"
+}
+
+# ;madhu 211017 fail
+src_compile() {
+	      export  LDFLAGS=-shared
+	      default
 }
 
 src_install() {
