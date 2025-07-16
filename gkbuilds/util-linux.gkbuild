@@ -30,6 +30,8 @@ src_configure() {
 		--disable-pylibmount
 		--enable-switch_root
 		--enable-static-programs=blkid
+		--disable-nls
+		--dsable-asciidoc
 	)
 
 	gkconf "${myconf[@]}"
